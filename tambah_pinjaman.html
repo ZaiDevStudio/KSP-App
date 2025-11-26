@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Tambah Pinjaman</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Tambah Pinjaman</h2>
+        </div>
+
+        <div style="padding: 20px 0;">
+            <div class="form-group"><label>Tanggal</label><input type="date" id="tgl"></div>
+            
+            <div class="form-group">
+                <label>Nama Nasabah</label>
+                <select id="selectNasabah"><option value="">Pilih Nasabah</option></select>
+            </div>
+
+            <div class="form-group"><label>Pinjaman Ke-</label><input type="number" id="ke" value="1"></div>
+            
+            <div class="form-group"><label>Pinjaman Pokok (Rp)</label><input type="number" id="pokok"></div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px;">
+                <div><label>Jasa (%)</label><input type="number" id="jasaPersen" value="10"></div>
+                <div><label>Nominal Jasa</label><input type="text" id="jasaNominal" readonly></div>
+            </div>
+
+            <div class="form-group"><label>Jumlah Dibayar</label><input type="text" id="totalBayar" readonly style="background: #eee;"></div>
+
+            <div class="form-group"><label>Periode Cicilan</label>
+                <select id="periode">
+                    <option value="Harian">Harian</option>
+                    <option value="Mingguan">Mingguan</option>
+                    <option value="Bulanan">Bulanan</option>
+                </select>
+            </div>
+
+            <div class="form-group"><label>Jumlah Angsuran (Kali)</label><input type="number" id="jmlAngsuran"></div>
+            <div class="form-group"><label>Nominal Per Cicilan</label><input type="text" id="nominalCicilan" readonly style="background: #eee; font-weight: bold; color: var(--primary-green);"></div>
+
+            <hr style="border-top: 1px dashed var(--gold);">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px;">
+                <div><label>Tabungan (%)</label><input type="number" id="tabPersen" value="2"></div>
+                <div><label>Nominal Tab</label><input type="text" id="tabNominal" readonly></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px;">
+                <div><label>Admin (%)</label><input type="number" id="adminPersen" value="1"></div>
+                <div><label>Nominal Admin</label><input type="text" id="adminNominal" readonly></div>
+            </div>
+
+            <div class="form-group">
+                <label style="font-size: 1.2rem;">Uang Diterima Bersih</label>
+                <input type="text" id="uangDiterima" readonly style="background: var(--primary-green); color: gold; font-size: 1.5rem; text-align: right;">
+            </div>
+
+            <div class="form-group">
+                <button class="btn-gold" id="simpanPinjaman">PROSES PINJAMAN</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, addDoc } from './config.js';
+
+        // Load Nasabah to Select
+        async function loadSelect() {
+            const s = document.getElementById('selectNasabah');
+            const q = await getDocs(collection(db, "nasabah"));
+            q.forEach(d => {
+                let opt = document.createElement('option');
+                opt.value = d.id;
+                opt.text = d.data().nama;
+                s.appendChild(opt);
+            });
+        }
+        loadSelect();
+
+        // Kalkulasi Otomatis
+        const ids = ['pokok', 'jasaPersen', 'jmlAngsuran', 'tabPersen', 'adminPersen'];
+        ids.forEach(id => document.getElementById(id).addEventListener('input', hitung));
+
+        function hitung() {
+            const pokok = parseFloat(document.getElementById('pokok').value) || 0;
+            const jasaP = parseFloat(document.getElementById('jasaPersen').value) || 0;
+            const tabP = parseFloat(document.getElementById('tabPersen').value) || 0;
+            const adminP = parseFloat(document.getElementById('adminPersen').value) || 0;
+            const angsuran = parseFloat(document.getElementById('jmlAngsuran').value) || 1;
+
+            const jasaNom = pokok * (jasaP / 100);
+            const total = pokok + jasaNom;
+            const cicilan = total / angsuran;
+            const tabNom = pokok * (tabP / 100);
+            const adminNom = pokok * (adminP / 100);
+            const bersih = pokok - tabNom - adminNom;
+
+            document.getElementById('jasaNominal').value = Math.floor(jasaNom);
+            document.getElementById('totalBayar').value = Math.floor(total);
+            document.getElementById('nominalCicilan').value = Math.floor(cicilan);
+            document.getElementById('tabNominal').value = Math.floor(tabNom);
+            document.getElementById('adminNominal').value = Math.floor(adminNom);
+            document.getElementById('uangDiterima').value = Math.floor(bersih);
+        }
+
+        document.getElementById('simpanPinjaman').addEventListener('click', async () => {
+            const nasabahId = document.getElementById('selectNasabah').value;
+            const namaNasabah = document.getElementById('selectNasabah').options[document.getElementById('selectNasabah').selectedIndex].text;
+            
+            if(!nasabahId) return Swal.fire('Error', 'Pilih Nasabah', 'warning');
+
+            const data = {
+                nasabahId: nasabahId,
+                nama: namaNasabah,
+                tgl: document.getElementById('tgl').value,
+                pokok: parseFloat(document.getElementById('pokok').value),
+                totalHutang: parseFloat(document.getElementById('totalBayar').value),
+                sisaHutang: parseFloat(document.getElementById('totalBayar').value), // Awalnya sama
+                sisaAngsuran: parseInt(document.getElementById('jmlAngsuran').value),
+                cicilanPerX: parseFloat(document.getElementById('nominalCicilan').value),
+                tabunganMasuk: parseFloat(document.getElementById('tabNominal').value), // Simpan ke koleksi tabungan juga nanti
+                status: 'Belum Lunas'
+            };
+
+            try {
+                // Simpan Pinjaman
+                await addDoc(collection(db, "pinjaman"), data);
+                
+                // Simpan Tabungan Awal
+                await addDoc(collection(db, "tabungan"), {
+                    nasabahId: nasabahId,
+                    nama: namaNasabah,
+                    nominal: data.tabunganMasuk,
+                    type: 'Potongan Pinjaman',
+                    tgl: new Date()
+                });
+
+                Swal.fire('Sukses', 'Pinjaman diproses & Tabungan masuk', 'success').then(() => window.location.href='pinjaman.html');
+            } catch (e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

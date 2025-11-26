@@ -1,0 +1,162 @@
+/* --- Global Style Modern Mobile --- */
+:root {
+    --primary-green: #0f5132; /* Hijau Tua Elegan */
+    --light-green: #e8f5e9;   /* Latar Hijau Muda */
+    --gold: #d4af37;          /* Emas */
+    --gold-hover: #b5952f;
+    --text-dark: #333;
+    --white: #ffffff;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--light-green);
+    margin: 0;
+    padding: 0;
+    padding-bottom: 70px; /* Space untuk footer */
+    color: var(--text-dark);
+}
+
+/* Container HP */
+.mobile-container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--white);
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, var(--primary-green), #146c43);
+    color: var(--gold);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    flex-grow: 1;
+    text-align: center;
+    font-weight: 600;
+}
+
+.back-btn {
+    color: var(--white);
+    font-size: 1.2rem;
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Dashboard Grid */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 20px;
+}
+
+.menu-item {
+    background: var(--white);
+    border: 1px solid var(--gold);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--primary-green);
+    transition: 0.3s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-item:active {
+    transform: scale(0.95);
+    background: var(--gold);
+    color: var(--white);
+}
+
+.menu-item i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--gold);
+}
+.menu-item:active i { color: var(--white); }
+
+/* Forms */
+.form-group { margin-bottom: 15px; padding: 0 20px; }
+label { display: block; font-weight: 500; margin-bottom: 5px; color: var(--primary-green); }
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+input:focus { border-color: var(--gold); outline: none; }
+
+/* Buttons */
+.btn-gold {
+    background: linear-gradient(to right, var(--gold), #eac155);
+    color: var(--primary-green);
+    border: none;
+    padding: 12px;
+    width: 100%;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(212, 175, 55, 0.4);
+}
+.btn-danger { background: #dc3545; color: white; margin-top: 10px; }
+.btn-wa { background: #25D366; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.8rem; }
+
+/* Cards (Data Display) */
+.card {
+    background: var(--white);
+    border-left: 5px solid var(--gold);
+    margin: 15px 20px;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: relative;
+}
+.card h3 { margin: 0 0 5px 0; font-size: 1.1rem; color: var(--primary-green); }
+.card p { margin: 3px 0; font-size: 0.9rem; color: #555; }
+.status-badge { position: absolute; top: 15px; right: 15px; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; color: white; }
+.lunas { background: var(--primary-green); }
+.belum { background: #dc3545; }
+
+/* Footer Nav */
+.footer-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 2px solid var(--gold);
+    z-index: 200;
+}
+.nav-item { text-align: center; color: #999; text-decoration: none; font-size: 0.8rem; }
+.nav-item.active { color: var(--primary-green); font-weight: bold; }
+.nav-item i { display: block; font-size: 1.2rem; margin-bottom: 2px; }
+
+/* Utility */
+.text-center { text-align: center; }
+.logo-login { width: 100px; margin-bottom: 20px; }

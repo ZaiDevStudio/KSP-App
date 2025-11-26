@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Pembayaran</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Pembayaran</h2>
+        </div>
+
+        <div style="padding: 15px;">
+            <input type="text" id="cariBayar" placeholder="Cari nama nasabah..." onkeyup="filterBayar()">
+        </div>
+
+        <div id="listTagihan">
+            </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, updateDoc, addDoc, doc, query, where } from './config.js';
+
+        async function loadTagihan() {
+            // Hanya ambil yg belum lunas
+            const q = query(collection(db, "pinjaman"), where("status", "==", "Belum Lunas"));
+            const snap = await getDocs(q);
+            const list = document.getElementById('listTagihan');
+            list.innerHTML = "";
+
+            snap.forEach(d => {
+                const data = d.data();
+                const div = document.createElement('div');
+                div.className = 'card tagihan-item';
+                div.innerHTML = `
+                    <h3>${data.nama}</h3>
+                    <p>Sisa Hutang: Rp ${data.sisaHutang.toLocaleString()}</p>
+                    <p>Sisa Angsuran: ${data.sisaAngsuran} x</p>
+                    <p>Tagihan per kali: <b>Rp ${Math.ceil(data.cicilanPerX).toLocaleString()}</b></p>
+                    <button class="btn-gold" style="margin-top:10px;" onclick="bayar('${d.id}', ${data.cicilanPerX}, ${data.sisaHutang}, ${data.sisaAngsuran}, '${data.nama}')">BAYAR SEKARANG</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+        loadTagihan();
+
+        window.filterBayar = () => {
+            const term = document.getElementById('cariBayar').value.toLowerCase();
+            document.querySelectorAll('.tagihan-item').forEach(el => {
+                el.style.display = el.innerText.toLowerCase().includes(term) ? 'block' : 'none';
+            });
+        }
+
+        window.bayar = async (id, nominal, sisaHutang, sisaAngsuran, nama) => {
+            const result = await Swal.fire({
+                title: 'Konfirmasi Bayar',
+                text: `Bayar Rp ${Math.ceil(nominal).toLocaleString()} untuk ${nama}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Bayar'
+            });
+
+            if (result.isConfirmed) {
+                const newSisa = sisaHutang - nominal;
+                const newAngsuran = sisaAngsuran - 1;
+                const status = newSisa <= 100 ? "Lunas" : "Belum Lunas"; // Toleransi pembulatan
+
+                try {
+                    // Update Pinjaman
+                    await updateDoc(doc(db, "pinjaman", id), {
+                        sisaHutang: newSisa,
+                        sisaAngsuran: newAngsuran,
+                        status: status
+                    });
+
+                    // Simpan Bukti
+                    const now = new Date();
+                    await addDoc(collection(db, "bukti_bayar"), {
+                        pinjamanId: id,
+                        nama: nama,
+                        nominal: nominal,
+                        tgl: now.toLocaleDateString(),
+                        jam: now.toLocaleTimeString(),
+                        angsuranKe: (sisaAngsuran) // Misal angsuran ke berapa dari belakang
+                    });
+
+                    Swal.fire('Berhasil', 'Pembayaran diterima', 'success');
+                    loadTagihan();
+                } catch (e) {
+                    Swal.fire('Gagal', e.message, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

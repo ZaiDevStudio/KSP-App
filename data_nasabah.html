@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Nasabah</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Data Nasabah</h2>
+        </div>
+
+        <div style="padding: 10px;">
+            <input type="text" id="search" placeholder="Cari nama nasabah..." onkeyup="filterNasabah()" style="margin-bottom: 10px;">
+            <div style="display: flex; gap: 5px;">
+                <button class="btn-gold" onclick="exportExcel()" style="padding: 8px; font-size: 12px;">Excel</button>
+                <button class="btn-gold" onclick="exportPDF()" style="padding: 8px; font-size: 12px;">PDF</button>
+                <button class="btn-danger" id="btnDeleteAll" style="padding: 8px; font-size: 12px; margin-top:0;">Hapus Semua</button>
+            </div>
+        </div>
+
+        <div id="listNasabah" style="padding-bottom: 50px;">
+            <p class="text-center">Memuat data...</p>
+        </div>
+
+        <div class="footer-nav">
+           <a href="index.html" class="nav-item"><i class="fas fa-home"></i>Home</a>
+           <a href="data_nasabah.html" class="nav-item active"><i class="fas fa-users"></i>Nasabah</a>
+           <a href="pinjaman.html" class="nav-item"><i class="fas fa-file-invoice"></i>Pinjaman</a>
+           <a href="tentang.html" class="nav-item"><i class="fas fa-info"></i>Tentang</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, deleteDoc, doc, query, where } from './config.js';
+        
+        let allNasabah = [];
+
+        async function loadNasabah() {
+            const querySnapshot = await getDocs(collection(db, "nasabah"));
+            const listDiv = document.getElementById('listNasabah');
+            listDiv.innerHTML = "";
+            allNasabah = [];
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                data.id = docSnap.id;
+                allNasabah.push(data);
+                renderCard(data, listDiv);
+            });
+
+            if(allNasabah.length === 0) listDiv.innerHTML = "<p class='text-center'>Belum ada data.</p>";
+        }
+
+        function renderCard(data, container) {
+            const div = document.createElement('div');
+            div.className = 'card nasabah-item';
+            div.innerHTML = `
+                <h3>${data.nama}</h3>
+                <p><i class="fas fa-store"></i> ${data.usaha} (${data.tempat})</p>
+                <p><i class="fas fa-map-marker-alt"></i> ${data.alamat}</p>
+                <p><i class="fas fa-phone"></i> ${data.hp} 
+                   <a href="https://wa.me/62${data.hp.replace(/^0+/, '')}" target="_blank" class="btn-wa">Chat WA</a>
+                </p>
+                <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px;">
+                    ${data.foto ? `<button class="btn-gold" style="padding:5px 10px; width:auto; font-size:12px;" onclick="lihatFoto('${data.foto}')">Lihat Foto</button>` : ''}
+                    <button class="btn-danger" style="padding:5px 10px; width:auto; font-size:12px; float:right;" onclick="hapusNasabah('${data.id}', '${data.nama}')">Hapus</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        window.filterNasabah = () => {
+            const term = document.getElementById('search').value.toLowerCase();
+            const items = document.getElementsByClassName('nasabah-item');
+            Array.from(items).forEach(item => {
+                const txt = item.innerText.toLowerCase();
+                item.style.display = txt.includes(term) ? 'block' : 'none';
+            });
+        }
+
+        window.lihatFoto = (src) => {
+            Swal.fire({ imageUrl: src, showConfirmButton: false });
+        }
+        
+        // Expose function to window for onclick
+        window.hapusNasabah = async (id, nama) => {
+            const res = await Swal.fire({ title: 'Hapus?', text: `Hapus ${nama}? Saldo & bukti akan hilang!`, icon: 'warning', showCancelButton: true });
+            if(res.isConfirmed){
+                // Note: Real cascading delete requires querying all sub-collections.
+                // For this demo code, we just delete the user doc.
+                await deleteDoc(doc(db, "nasabah", id));
+                loadNasabah();
+                Swal.fire('Terhapus', '', 'success');
+            }
+        }
+
+        // Initialize
+        loadNasabah();
+
+        // Export Logic (Simple)
+        window.exportExcel = () => {
+            const ws = XLSX.utils.json_to_sheet(allNasabah);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nasabah");
+            XLSX.writeFile(wb, "Data_Nasabah.xlsx");
+        }
+    </script>
+</body>
+</html>

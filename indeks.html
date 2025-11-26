@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - KSP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+                <img src="KSP.png" alt="Logo" style="height: 30px; margin-right: 10px;">
+                <span style="font-weight: bold; color: var(--gold);">KOPERASI SIMPAN PINJAM</span>
+            </div>
+            <i class="fas fa-sign-out-alt" style="color: white; cursor: pointer;" id="btnLogout"></i>
+        </div>
+
+        <div style="padding: 20px; text-align: center;">
+            <h3 style="color: var(--primary-green);">Selamat Datang, <span id="userName">User</span></h3>
+        </div>
+
+        <div class="menu-grid">
+            <a href="tambah_nasabah.html" class="menu-item">
+                <i class="fas fa-user-plus"></i>
+                <span>Tambah Nasabah</span>
+            </a>
+            <a href="data_nasabah.html" class="menu-item">
+                <i class="fas fa-users"></i>
+                <span>Data Nasabah</span>
+            </a>
+            <a href="tambah_pinjaman.html" class="menu-item">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>Tambah Pinjaman</span>
+            </a>
+            <a href="pinjaman.html" class="menu-item">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Data Pinjaman</span>
+            </a>
+            <a href="pembayaran.html" class="menu-item">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>Pembayaran</span>
+            </a>
+            <a href="tabungan.html" class="menu-item">
+                <i class="fas fa-piggy-bank"></i>
+                <span>Tabungan</span>
+            </a>
+            <a href="saldo.html" class="menu-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Rekapan Saldo</span>
+            </a>
+            <a href="bukti.html" class="menu-item">
+                <i class="fas fa-receipt"></i>
+                <span>Bukti Bayar</span>
+            </a>
+            <a href="tentang.html" class="menu-item" style="grid-column: span 2;">
+                <i class="fas fa-info-circle"></i>
+                <span>Tentang Aplikasi</span>
+            </a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, signOut, onAuthStateChanged } from './config.js';
+        
+        onAuthStateChanged(auth, (user) => {
+            if(user) document.getElementById('userName').innerText = user.displayName || 'Admin';
+        });
+
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = 'login.html');
+        });
+    </script>
+</body>
+</html>

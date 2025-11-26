@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Tentang Aplikasi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Tentang</h2>
+        </div>
+
+        <div style="padding: 20px; text-align: center;">
+            <img src="KSP.png" style="width: 120px; margin-bottom: 10px;">
+            <h3 style="color: var(--primary-green);">KSP Borsin Tenun</h3>
+            <p>Aplikasi manajemen simpan pinjam modern.</p>
+            
+            <div class="card" style="text-align: left;">
+                <h4 style="border-bottom: 2px solid var(--gold); padding-bottom: 5px;">Developer</h4>
+                <p><b>Nama:</b> Yeriyuma Zai, AMd.Kom</p>
+                <p><b>WA:</b> 082363042719</p>
+                <a href="https://wa.me/6282363042719" class="btn-gold" style="display:block; text-align:center; text-decoration:none; margin-top:10px;">Hubungi Saya</a>
+            </div>
+
+            <div class="card" style="text-align: left; background: var(--primary-green); color: white;">
+                <h4 style="border-bottom: 2px solid var(--gold); padding-bottom: 5px; color: var(--gold);">Dukungan / Donasi</h4>
+                <p><b>Bank:</b> BRI</p>
+                <p><b>A.N:</b> YERIYUMA ZAI</p>
+                <p id="rek">1882-0100-1221-501</p>
+                <button class="btn-gold" onclick="copyRek()" style="font-size: 12px; padding: 5px;">Salin No. Rekening</button>
+            </div>
+        </div>
+
+        <div class="footer-nav">
+           <a href="index.html" class="nav-item"><i class="fas fa-home"></i>Home</a>
+           <a href="data_nasabah.html" class="nav-item"><i class="fas fa-users"></i>Nasabah</a>
+           <a href="tentang.html" class="nav-item active"><i class="fas fa-info"></i>Tentang</a>
+        </div>
+    </div>
+
+    <script>
+        function copyRek() {
+            const text = document.getElementById('rek').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Disalin!',
+                    text: 'Nomor rekening berhasil disalin.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            });
+        }
+    </script>
+</body>
+</html>
