@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rekapan Saldo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta name="theme-color" content="#0f5132">
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Rekapan Saldo</h2>
+        </div>
+
+        <div style="padding: 20px;">
+            <div class="card" style="background: linear-gradient(to right, #0d47a1, #1976d2); color: white; border:none;">
+                <h3><i class="fas fa-hand-holding-usd"></i> Total Uang Dipinjam</h3>
+                <h1 id="totalPinjaman">Rp 0</h1>
+                <p>Uang pokok yang beredar di nasabah</p>
+            </div>
+
+            <div class="card" style="background: linear-gradient(to right, #1b5e20, #2e7d32); color: white; border:none;">
+                <h3><i class="fas fa-check-circle"></i> Estimasi Pendapatan</h3>
+                <h1 id="totalPiutang">Rp 0</h1>
+                <p>Total Hutang (Pokok + Jasa) yang harus kembali</p>
+            </div>
+
+             <div class="card" style="background: linear-gradient(to right, #e65100, #f57c00); color: white; border:none;">
+                <h3><i class="fas fa-exclamation-circle"></i> Sisa Tagihan</h3>
+                <h1 id="sisaTagihan">Rp 0</h1>
+                <p>Uang yang belum dibayar nasabah</p>
+            </div>
+
+            <div class="card" style="background: linear-gradient(to right, #bf360c, #d84315); color: white; border:none;">
+                <h3><i class="fas fa-piggy-bank"></i> Dana Tabungan</h3>
+                <h1 id="totalTabungan">Rp 0</h1>
+                <p>Uang tabungan nasabah terkumpul</p>
+            </div>
+            
+            <button class="btn-gold" onclick="location.reload()">Refresh Data</button>
+        </div>
+        
+        <div class="footer-nav">
+           <a href="index.html" class="nav-item"><i class="fas fa-home"></i>Home</a>
+           <a href="saldo.html" class="nav-item active"><i class="fas fa-chart-line"></i>Saldo</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs } from './config.js';
+
+        async function hitungSaldo() {
+            Swal.fire({title: 'Menghitung...', didOpen: () => Swal.showLoading()});
+            
+            let tPinjaman = 0;
+            let tPiutang = 0;
+            let tSisa = 0;
+            let tTabungan = 0;
+
+            // Hitung data Pinjaman
+            const snapPinjam = await getDocs(collection(db, "pinjaman"));
+            snapPinjam.forEach(d => {
+                const data = d.data();
+                tPinjaman += Number(data.pokok) || 0;
+                tPiutang += Number(data.totalHutang) || 0;
+                tSisa += Number(data.sisaHutang) || 0;
+            });
+
+            // Hitung data Tabungan
+            const snapTab = await getDocs(collection(db, "tabungan"));
+            snapTab.forEach(d => {
+                tTabungan += Number(d.data().nominal) || 0;
+            });
+
+            document.getElementById('totalPinjaman').innerText = 'Rp ' + tPinjaman.toLocaleString();
+            document.getElementById('totalPiutang').innerText = 'Rp ' + tPiutang.toLocaleString();
+            document.getElementById('sisaTagihan').innerText = 'Rp ' + tSisa.toLocaleString();
+            document.getElementById('totalTabungan').innerText = 'Rp ' + tTabungan.toLocaleString();
+
+            Swal.close();
+        }
+
+        hitungSaldo();
+    </script>
+</body>
+</html>

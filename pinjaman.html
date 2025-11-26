@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Pinjaman - KSP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Data Pinjaman</h2>
+        </div>
+
+        <div style="padding: 10px;">
+            <input type="text" id="search" placeholder="Cari nama peminjam..." onkeyup="filterPinjaman()" style="margin-bottom: 10px;">
+            <div style="display: flex; gap: 5px;">
+                <button class="btn-gold" onclick="exportExcel()" style="padding: 8px; font-size: 12px;">Excel</button>
+                <button class="btn-gold" onclick="exportPDF()" style="padding: 8px; font-size: 12px;">PDF</button>
+                <button class="btn-danger" onclick="hapusSemua()" style="padding: 8px; font-size: 12px; margin-top:0;">Hapus Lunas</button>
+            </div>
+        </div>
+
+        <div id="listPinjaman" style="padding-bottom: 70px;">
+            <p class="text-center" style="margin-top: 20px;">Memuat data pinjaman...</p>
+        </div>
+
+        <div class="footer-nav">
+           <a href="index.html" class="nav-item"><i class="fas fa-home"></i>Home</a>
+           <a href="data_nasabah.html" class="nav-item"><i class="fas fa-users"></i>Nasabah</a>
+           <a href="pinjaman.html" class="nav-item active"><i class="fas fa-file-invoice-dollar"></i>Pinjaman</a>
+           <a href="tentang.html" class="nav-item"><i class="fas fa-info"></i>Tentang</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, deleteDoc, doc, query, where, getDoc } from './config.js';
+        
+        let allPinjaman = [];
+
+        async function loadPinjaman() {
+            const listDiv = document.getElementById('listPinjaman');
+            try {
+                // Ambil semua data pinjaman
+                const q = await getDocs(collection(db, "pinjaman"));
+                allPinjaman = [];
+                listDiv.innerHTML = "";
+
+                if (q.empty) {
+                    listDiv.innerHTML = "<p class='text-center'>Belum ada data pinjaman.</p>";
+                    return;
+                }
+
+                q.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    data.id = docSnap.id;
+                    allPinjaman.push(data);
+                    renderCard(data, listDiv);
+                });
+            } catch (error) {
+                console.error(error);
+                listDiv.innerHTML = "<p class='text-center'>Gagal memuat data.</p>";
+            }
+        }
+
+        function renderCard(data, container) {
+            const div = document.createElement('div');
+            div.className = 'card pinjaman-item';
+            
+            // Cek Status
+            let statusBadge = data.sisaHutang <= 100 ? 
+                `<span class="status-badge lunas">LUNAS</span>` : 
+                `<span class="status-badge belum">BELUM LUNAS</span>`;
+
+            // Tombol Hapus hanya muncul jika Lunas (sesuai request)
+            let btnHapus = data.sisaHutang <= 100 ? 
+                `<button class="btn-danger" style="padding:5px; font-size:12px; width:auto; float:right;" onclick="hapusSatu('${data.id}')">Hapus Data</button>` : '';
+
+            div.innerHTML = `
+                ${statusBadge}
+                <h3>${data.nama}</h3>
+                <p style="font-size: 0.8rem; color: #888;">${data.tgl}</p>
+                <div style="margin: 10px 0; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 5px 0;">
+                    <p><b>Pokok:</b> Rp ${Number(data.pokok).toLocaleString()}</p>
+                    <p><b>Total Hutang:</b> Rp ${Number(data.totalHutang).toLocaleString()}</p>
+                    <p style="color: var(--primary-green);"><b>Sisa Saldo:</b> Rp ${Number(data.sisaHutang).toLocaleString()}</p>
+                    <p><b>Sisa Angsuran:</b> ${data.sisaAngsuran} kali</p>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <button class="btn-gold" style="padding:5px 10px; width:auto; font-size:12px;" onclick="lihatRiwayat('${data.id}', '${data.nama}')">Lihat Bukti Bayar</button>
+                    ${btnHapus}
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        // Filter Pencarian
+        window.filterPinjaman = () => {
+            const term = document.getElementById('search').value.toLowerCase();
+            const items = document.getElementsByClassName('pinjaman-item');
+            Array.from(items).forEach(item => {
+                const txt = item.innerText.toLowerCase();
+                item.style.display = txt.includes(term) ? 'block' : 'none';
+            });
+        }
+
+        // Lihat Riwayat Pembayaran (Bukti)
+        window.lihatRiwayat = async (pinjamanId, nama) => {
+            Swal.fire({ title: 'Memuat Bukti...', didOpen: () => Swal.showLoading() });
+            
+            try {
+                const q = query(collection(db, "bukti_bayar"), where("pinjamanId", "==", pinjamanId));
+                const snap = await getDocs(q);
+                
+                let htmlContent = `<h4 style="text-align:left;">Riwayat: ${nama}</h4><ul style="text-align:left; font-size:0.9rem; padding-left:20px;">`;
+                
+                if(snap.empty) {
+                    htmlContent += "<li>Belum ada pembayaran.</li>";
+                } else {
+                    snap.forEach(d => {
+                        const bayar = d.data();
+                        htmlContent += `<li><b>${bayar.tgl} (${bayar.jam}):</b> Rp ${Number(bayar.nominal).toLocaleString()} (Sisa angsuran: ${bayar.angsuranKe})</li>`;
+                    });
+                }
+                htmlContent += "</ul>";
+                
+                Swal.fire({
+                    title: 'Bukti Pembayaran',
+                    html: htmlContent,
+                    confirmButtonText: 'Tutup'
+                });
+            } catch (e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        }
+
+        // Hapus Satu Data (Jika Lunas)
+        window.hapusSatu = async (id) => {
+            const c = await Swal.fire({title: 'Hapus?', text: 'Data pinjaman ini akan dihapus permanen.', icon:'warning', showCancelButton:true});
+            if(c.isConfirmed) {
+                await deleteDoc(doc(db, "pinjaman", id));
+                loadPinjaman();
+                Swal.fire('Terhapus', '', 'success');
+            }
+        }
+
+        // Hapus Semua yang Lunas
+        window.hapusSemua = async () => {
+            const c = await Swal.fire({title: 'Hapus Data Lunas?', text: 'Semua data yang sudah lunas akan dihapus.', icon:'warning', showCancelButton:true});
+            if(c.isConfirmed) {
+                const lunas = allPinjaman.filter(p => p.sisaHutang <= 100);
+                if(lunas.length === 0) return Swal.fire('Info', 'Tidak ada data lunas.', 'info');
+                
+                for(let item of lunas) {
+                    await deleteDoc(doc(db, "pinjaman", item.id));
+                }
+                loadPinjaman();
+                Swal.fire('Selesai', `${lunas.length} data dihapus.`, 'success');
+            }
+        }
+
+        // Export Functions
+        window.exportExcel = () => {
+            const dataToExport = allPinjaman.map(p => ({
+                Nama: p.nama,
+                Tanggal: p.tgl,
+                Pokok: p.pokok,
+                Total_Hutang: p.totalHutang,
+                Sisa_Hutang: p.sisaHutang,
+                Sisa_Angsuran: p.sisaAngsuran,
+                Status: p.sisaHutang <= 100 ? 'Lunas' : 'Belum'
+            }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Pinjaman");
+            XLSX.writeFile(wb, "Data_Pinjaman.xlsx");
+        }
+
+        window.exportPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Laporan Data Pinjaman KSP", 14, 10);
+            
+            const tableData = allPinjaman.map(p => [
+                p.nama, 
+                p.tgl, 
+                `Rp ${p.sisaHutang.toLocaleString()}`, 
+                p.sisaHutang <= 100 ? 'Lunas' : 'Belum'
+            ]);
+
+            doc.autoTable({
+                head: [['Nama', 'Tanggal', 'Sisa Saldo', 'Status']],
+                body: tableData,
+                startY: 20,
+            });
+            doc.save("Laporan_Pinjaman.pdf");
+        }
+
+        // Load data saat halaman dibuka
+        loadPinjaman();
+    </script>
+</body>
+</html>

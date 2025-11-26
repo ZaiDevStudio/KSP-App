@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bukti Pembayaran</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta name="theme-color" content="#0f5132">
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Bukti Pembayaran</h2>
+        </div>
+
+        <div style="padding: 10px;">
+            <input type="text" id="search" placeholder="Cari nama nasabah..." onkeyup="filterBukti()">
+            <button class="btn-danger" onclick="hapusSemua()" style="font-size:12px; padding:8px; width:auto; margin-top:10px;">Hapus Semua Riwayat</button>
+        </div>
+
+        <div id="listBukti" style="padding-bottom: 70px;">
+            <p class="text-center" style="margin-top: 20px;">Memuat riwayat...</p>
+        </div>
+
+        <div class="footer-nav">
+           <a href="index.html" class="nav-item"><i class="fas fa-home"></i>Home</a>
+           <a href="pinjaman.html" class="nav-item"><i class="fas fa-file-invoice"></i>Pinjaman</a>
+           <a href="bukti.html" class="nav-item active"><i class="fas fa-receipt"></i>Bukti</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, deleteDoc, doc } from './config.js';
+        
+        let allBukti = [];
+
+        async function loadBukti() {
+            const listDiv = document.getElementById('listBukti');
+            try {
+                const snap = await getDocs(collection(db, "bukti_bayar"));
+                allBukti = [];
+                listDiv.innerHTML = "";
+                
+                if (snap.empty) {
+                    listDiv.innerHTML = "<p class='text-center'>Belum ada transaksi pembayaran.</p>";
+                    return;
+                }
+
+                // Sortir dari yg terbaru (logic JS sederhana)
+                let docs = [];
+                snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                docs.reverse(); // Balik urutan agar yg baru diatas
+
+                docs.forEach(data => {
+                    const div = document.createElement('div');
+                    div.className = 'card bukti-item';
+                    div.innerHTML = `
+                        <div style="border-bottom: 1px dashed #ccc; padding-bottom:5px; margin-bottom:5px; display:flex; justify-content:space-between;">
+                            <span style="font-weight:bold;">Kwitansi</span>
+                            <span style="font-size:0.8rem; color:#888;">${data.tgl} | ${data.jam}</span>
+                        </div>
+                        <h3>${data.nama}</h3>
+                        <p>Telah membayar: <b style="color:var(--primary-green);">Rp ${Number(data.nominal).toLocaleString()}</b></p>
+                        <p style="font-size:0.8rem;">Sisa Angsuran saat bayar: ${data.angsuranKe} kali</p>
+                        <div style="text-align:right; margin-top:10px;">
+                            <button class="btn-danger" style="padding:5px 10px; font-size:10px; width:auto; border:none;" onclick="hapusSatu('${data.id}')">Hapus</button>
+                        </div>
+                    `;
+                    listDiv.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        window.filterBukti = () => {
+            const term = document.getElementById('search').value.toLowerCase();
+            const items = document.getElementsByClassName('bukti-item');
+            Array.from(items).forEach(item => {
+                const txt = item.innerText.toLowerCase();
+                item.style.display = txt.includes(term) ? 'block' : 'none';
+            });
+        }
+
+        window.hapusSatu = async (id) => {
+             const c = await Swal.fire({title:'Hapus Bukti?', icon:'warning', showCancelButton:true});
+            if(c.isConfirmed) {
+                await deleteDoc(doc(db, "bukti_bayar", id));
+                loadBukti();
+            }
+        }
+        
+        window.hapusSemua = async () => {
+             const c = await Swal.fire({title:'Hapus SEMUA?', text:'Data akan hilang permanen!', icon:'warning', showCancelButton:true});
+            if(c.isConfirmed) {
+                const snap = await getDocs(collection(db, "bukti_bayar"));
+                snap.forEach(async (d) => await deleteDoc(doc(db, "bukti_bayar", d.id)));
+                Swal.fire('Selesai', '', 'success').then(() => loadBukti());
+            }
+        }
+
+        loadBukti();
+    </script>
+</body>
+</html>

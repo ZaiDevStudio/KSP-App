@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabungan Nasabah</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta name="theme-color" content="#0f5132">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2>Tabungan Nasabah</h2>
+        </div>
+
+        <div style="padding: 10px;">
+            <input type="text" id="search" placeholder="Cari nama nasabah..." onkeyup="filterTabungan()">
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <button class="btn-gold" onclick="exportExcel()" style="padding: 8px; font-size: 12px; width: auto;">Excel</button>
+                <button class="btn-gold" onclick="exportPDF()" style="padding: 8px; font-size: 12px; width: auto;">PDF</button>
+                <button class="btn-danger" onclick="hapusSemua()" style="padding: 8px; font-size: 12px; width: auto; margin-top:0;">Hapus Semua</button>
+            </div>
+        </div>
+
+        <div id="listTabungan" style="padding-bottom: 70px;">
+            <p class="text-center" style="margin-top: 20px;">Memuat data...</p>
+        </div>
+
+        <div class="footer-nav">
+           <a href="index.html" class="nav-item"><i class="fas fa-home"></i>Home</a>
+           <a href="data_nasabah.html" class="nav-item"><i class="fas fa-users"></i>Nasabah</a>
+           <a href="tabungan.html" class="nav-item active"><i class="fas fa-piggy-bank"></i>Tabungan</a>
+           <a href="tentang.html" class="nav-item"><i class="fas fa-info"></i>Tentang</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, deleteDoc, doc } from './config.js';
+        
+        let allTabungan = [];
+
+        async function loadTabungan() {
+            const listDiv = document.getElementById('listTabungan');
+            listDiv.innerHTML = '<p class="text-center">Memuat...</p>';
+            
+            try {
+                const snap = await getDocs(collection(db, "tabungan"));
+                allTabungan = [];
+                listDiv.innerHTML = "";
+                
+                if (snap.empty) {
+                    listDiv.innerHTML = "<p class='text-center'>Belum ada data tabungan.</p>";
+                    return;
+                }
+
+                snap.forEach(d => {
+                    const data = d.data();
+                    data.id = d.id;
+                    allTabungan.push(data);
+                    
+                    // Render Card
+                    const div = document.createElement('div');
+                    div.className = 'card tabungan-item';
+                    div.innerHTML = `
+                        <h3>${data.nama}</h3>
+                        <p style="font-size:0.8rem; color:#888;">${data.tgl instanceof Object ? new Date(data.tgl.seconds * 1000).toLocaleDateString() : data.tgl}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:1.1rem; color:var(--primary-green); font-weight:bold;">Rp ${Number(data.nominal).toLocaleString()}</span>
+                            <i class="fas fa-trash" style="color:red; cursor:pointer;" onclick="hapusSatu('${data.id}')"></i>
+                        </div>
+                        <p style="font-size:0.8rem; margin-top:5px;"><i>${data.type || 'Simpanan'}</i></p>
+                    `;
+                    listDiv.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+                listDiv.innerHTML = "<p class='text-center'>Gagal memuat data.</p>";
+            }
+        }
+
+        window.filterTabungan = () => {
+            const term = document.getElementById('search').value.toLowerCase();
+            const items = document.getElementsByClassName('tabungan-item');
+            Array.from(items).forEach(item => {
+                const txt = item.innerText.toLowerCase();
+                item.style.display = txt.includes(term) ? 'block' : 'none';
+            });
+        }
+
+        window.hapusSatu = async (id) => {
+            const c = await Swal.fire({title:'Hapus?', icon:'warning', showCancelButton:true});
+            if(c.isConfirmed) {
+                await deleteDoc(doc(db, "tabungan", id));
+                loadTabungan();
+            }
+        }
+
+        window.hapusSemua = async () => {
+            const c = await Swal.fire({title:'Hapus SEMUA data?', text:'Tidak bisa dikembalikan!', icon:'warning', showCancelButton:true});
+            if(c.isConfirmed) {
+                for(let item of allTabungan) await deleteDoc(doc(db, "tabungan", item.id));
+                loadTabungan();
+                Swal.fire('Terhapus', '', 'success');
+            }
+        }
+
+        window.exportExcel = () => {
+            const dataToExport = allTabungan.map(t => ({Nama: t.nama, Nominal: t.nominal, Ket: t.type}));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Tabungan");
+            XLSX.writeFile(wb, "Data_Tabungan.xlsx");
+        }
+
+        window.exportPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Laporan Tabungan", 14, 10);
+            const tableData = allTabungan.map(t => [t.nama, `Rp ${Number(t.nominal).toLocaleString()}`, t.type]);
+            doc.autoTable({ head: [['Nama', 'Nominal', 'Keterangan']], body: tableData });
+            doc.save("Laporan_Tabungan.pdf");
+        }
+
+        loadTabungan();
+    </script>
+</body>
+</html>
